@@ -16,6 +16,7 @@
 
 package com.example.android.bluetoothlegatt;
 
+import android.Manifest;
 import android.app.Activity;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
@@ -25,16 +26,35 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.IBinder;
+import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.ExpandableListView;
+import android.widget.ListView;
 import android.widget.SimpleExpandableListAdapter;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.Description;
+import com.github.mikephil.charting.components.Legend;
+import com.github.mikephil.charting.components.YAxis;
+import com.github.mikephil.charting.data.Entry;
+import com.github.mikephil.charting.data.LineData;
+import com.github.mikephil.charting.data.LineDataSet;
+import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
+
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -45,12 +65,15 @@ import java.util.List;
  * communicates with {@code BluetoothLeService}, which in turn interacts with the
  * Bluetooth LE API.
  */
-public class DeviceControlActivity extends Activity {
+public class DeviceControlActivity extends Activity implements ActivityCompat.OnRequestPermissionsResultCallback{
     private final static String TAG = DeviceControlActivity.class.getSimpleName();
 
     public static final String EXTRAS_DEVICE_NAME = "DEVICE_NAME";
     public static final String EXTRAS_DEVICE_ADDRESS = "DEVICE_ADDRESS";
 
+    private Thread thread;
+    private ListView myListViewForSongs;
+    private LineChart lineChart;
     private TextView mConnectionState;
     private TextView mDataField;
     private String mDeviceName;
@@ -140,6 +163,7 @@ public class DeviceControlActivity extends Activity {
                             mNotifyCharacteristic = characteristic;
                             mBluetoothLeService.setCharacteristicNotification(
                                     characteristic, true);
+
                         }
                         return true;
                     }
@@ -152,10 +176,75 @@ public class DeviceControlActivity extends Activity {
         mDataField.setText(R.string.no_data);
     }
 
+    public ArrayList<File> findSong(File file){
+
+        ArrayList<File> arrayList = new ArrayList<>();
+        File[] files = file.listFiles();
+        for(File singleFile: files){
+            if(singleFile.isDirectory() && !singleFile.isHidden()){
+                arrayList.addAll(findSong(singleFile));
+            }
+            else{
+                if (singleFile.getName().endsWith(".mp3") || singleFile.getName().endsWith(".wav")){
+                    arrayList.add(singleFile);
+                }
+            }
+        }
+
+        return arrayList;
+
+    }
+    private static final int REQUEST_WRITE_PERMISSION = 111; //Number is not matter, just put what you want
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        if (requestCode == REQUEST_WRITE_PERMISSION && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            //Do your stuff with the file
+            final ListView myListViewForSongs  = (ListView)findViewById(R.id.mySongListView);
+
+            final ArrayList<File> mySongs = findSong(Environment.getExternalStorageDirectory());
+
+            String[] items;
+            items = new String[mySongs.size()];
+
+            for(int i = 0; i<mySongs.size();i++)
+            {
+                items[i] = mySongs.get(i).getName().toString().replace(".mp3","").replace(".wav","");
+
+            }
+
+            ArrayAdapter<String> myAdapter = new ArrayAdapter<String>(getApplicationContext() ,android.R.layout.simple_list_item_1, items);
+            myListViewForSongs.setAdapter(myAdapter);
+        }
+    }
+
+    private void requestPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            requestPermissions(new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_WRITE_PERMISSION);
+        } else {
+            final ListView myListViewForSongs  = (ListView)findViewById(R.id.mySongListView);
+
+            final ArrayList<File> mySongs = findSong(Environment.getExternalStorageDirectory());
+
+            String[] items;
+            items = new String[mySongs.size()];
+
+            for(int i = 0; i<mySongs.size();i++)
+            {
+                items[i] = mySongs.get(i).getName().toString().replace(".mp3","").replace(".wav","");
+
+            }
+
+            ArrayAdapter<String> myAdapter = new ArrayAdapter<String>(getApplicationContext() ,android.R.layout.simple_list_item_1, items);
+            myListViewForSongs.setAdapter(myAdapter);
+        }
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.gatt_services_characteristics);
+
 
         final Intent intent = getIntent();
         mDeviceName = intent.getStringExtra(EXTRAS_DEVICE_NAME);
@@ -167,12 +256,30 @@ public class DeviceControlActivity extends Activity {
         mGattServicesList.setOnChildClickListener(servicesListClickListner);
         mConnectionState = (TextView) findViewById(R.id.connection_state);
         mDataField = (TextView) findViewById(R.id.data_value);
+        lineChart = (LineChart) findViewById(R.id.lineChart);
+        myListViewForSongs = (ListView) findViewById(R.id.mySongListView);
+
+        requestPermission();
+
+
+
+
+
+        //initialize line chart
+        Description description = new Description();
+        description.setText("Stress Management Data Graph");
+        lineChart.setDescription(description);
+        LineData data = new LineData();
+        lineChart.setData(data);
+
+
 
         getActionBar().setTitle(mDeviceName);
         getActionBar().setDisplayHomeAsUpEnabled(true);
         Intent gattServiceIntent = new Intent(this, BluetoothLeService.class);
         bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
     }
+
 
     @Override
     protected void onResume() {
@@ -235,10 +342,75 @@ public class DeviceControlActivity extends Activity {
         });
     }
 
+    private LineDataSet createSet(){
+        LineDataSet set = new LineDataSet(null,"Dynamic Value");
+        set.setAxisDependency(YAxis.AxisDependency.LEFT);
+        set.setLineWidth(3f);
+        set.setColor(Color.BLUE);
+        set.setMode(LineDataSet.Mode.CUBIC_BEZIER);
+        set.setCubicIntensity(0.2f);
+        return set;
+    }
+
     private void displayData(String data) {
         if (data != null) {
             mDataField.setText(data);
         }
+        LineData currentData = lineChart.getData();
+        if(currentData != null){
+            ILineDataSet set = currentData.getDataSetByIndex(0);
+
+            if(set == null){
+                set = createSet();
+                currentData.addDataSet(set);
+            }
+
+            currentData.addEntry(new Entry(set.getEntryCount(), Float.parseFloat(data)), 0);
+            currentData.notifyDataChanged();
+            lineChart.notifyDataSetChanged();
+            lineChart.setMaxVisibleValueCount(5);
+            lineChart.moveViewToX(currentData.getEntryCount());
+        }
+//        ArrayList<String> xAXES = new ArrayList<>();
+//        ArrayList<Entry> yAXESsin = new ArrayList<>();
+//        ArrayList<Entry> yAXEScos = new ArrayList<>();
+//        float x = 0;
+//        int numDataPoints = 1000;
+//        for (int i = 0; i < numDataPoints; i++) {
+//            float sinFunction = Float.parseFloat(String.valueOf(Math.sin(x)));
+//            float cosFunction = Float.parseFloat(String.valueOf(Math.cos(x)));
+//
+//            Entry sinE = new Entry(x, sinFunction);
+//            yAXESsin.add(sinE);
+//            Entry cosE = new Entry(x, cosFunction);
+//            yAXEScos.add(cosE);
+//            x = x + 0.1f;
+//        }
+//        String[] xaxes = new String[xAXES.size()];
+//
+//
+//        ArrayList<ILineDataSet> lineDataSets = new ArrayList<ILineDataSet>();
+//        LineDataSet lineDataSet1 = new LineDataSet(yAXEScos, "phasic skin conductance");
+//        lineDataSet1.setAxisDependency(YAxis.AxisDependency.LEFT);
+//        lineDataSet1.setDrawCircles(false);
+//        lineDataSet1.setColor(Color.BLUE);
+//
+//        LineDataSet lineDataSet2 = new LineDataSet(yAXESsin, "tonic skin conductance");
+//        lineDataSet2.setAxisDependency(YAxis.AxisDependency.LEFT);
+//        lineDataSet2.setDrawCircles(false);
+//        lineDataSet2.setColor(Color.RED);
+//
+//        lineDataSets.add(lineDataSet1);
+//        lineDataSets.add(lineDataSet2);
+//
+//        LineData data1 = new LineData(lineDataSets);
+//        lineChart.setData(data1);
+//        lineChart.invalidate();
+//        lineChart.setData(new LineData(lineDataSets));
+//        lineChart.setVisibleXRangeMaximum(65f);
+//        Legend legend = lineChart.getLegend();
+//        legend.setTextSize(20);
+//        legend.setWordWrapEnabled(true);
     }
 
     // Demonstrates how to iterate through the supported GATT Services/Characteristics.
@@ -247,8 +419,8 @@ public class DeviceControlActivity extends Activity {
     private void displayGattServices(List<BluetoothGattService> gattServices) {
         if (gattServices == null) return;
         String uuid = null;
-        String unknownServiceString = getResources().getString(R.string.unknown_service);
-        String unknownCharaString = getResources().getString(R.string.unknown_characteristic);
+        String unknownServiceString = "GSR GRAPH";
+        String unknownCharaString = "CLICK HERE";
         ArrayList<HashMap<String, String>> gattServiceData = new ArrayList<HashMap<String, String>>();
         ArrayList<ArrayList<HashMap<String, String>>> gattCharacteristicData
                 = new ArrayList<ArrayList<HashMap<String, String>>>();
@@ -258,30 +430,34 @@ public class DeviceControlActivity extends Activity {
         for (BluetoothGattService gattService : gattServices) {
             HashMap<String, String> currentServiceData = new HashMap<String, String>();
             uuid = gattService.getUuid().toString();
-            currentServiceData.put(
-                    LIST_NAME, SampleGattAttributes.lookup(uuid, unknownServiceString));
-            currentServiceData.put(LIST_UUID, uuid);
-            gattServiceData.add(currentServiceData);
+            Log.d(TAG, "uuid is:" + uuid);
+            if(uuid.equals("6e400001-b5a3-f393-e0a9-e50e24dcca9e")) {
+                Log.d(TAG, "found it");
+                currentServiceData.put(
+                        LIST_NAME, SampleGattAttributes.lookup(uuid, unknownServiceString));
+//                currentServiceData.put(LIST_UUID, uuid);
+                gattServiceData.add(currentServiceData);
 
-            ArrayList<HashMap<String, String>> gattCharacteristicGroupData =
-                    new ArrayList<HashMap<String, String>>();
-            List<BluetoothGattCharacteristic> gattCharacteristics =
-                    gattService.getCharacteristics();
-            ArrayList<BluetoothGattCharacteristic> charas =
-                    new ArrayList<BluetoothGattCharacteristic>();
+                ArrayList<HashMap<String, String>> gattCharacteristicGroupData =
+                        new ArrayList<HashMap<String, String>>();
+                List<BluetoothGattCharacteristic> gattCharacteristics =
+                        gattService.getCharacteristics();
+                ArrayList<BluetoothGattCharacteristic> charas =
+                        new ArrayList<BluetoothGattCharacteristic>();
 
-            // Loops through available Characteristics.
-            for (BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics) {
-                charas.add(gattCharacteristic);
-                HashMap<String, String> currentCharaData = new HashMap<String, String>();
-                uuid = gattCharacteristic.getUuid().toString();
-                currentCharaData.put(
-                        LIST_NAME, SampleGattAttributes.lookup(uuid, unknownCharaString));
-                currentCharaData.put(LIST_UUID, uuid);
-                gattCharacteristicGroupData.add(currentCharaData);
+                // Loops through available Characteristics.
+                for (BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics) {
+                    charas.add(gattCharacteristic);
+                    HashMap<String, String> currentCharaData = new HashMap<String, String>();
+                    uuid = gattCharacteristic.getUuid().toString();
+                    currentCharaData.put(
+                            LIST_NAME, SampleGattAttributes.lookup(uuid, unknownCharaString));
+//                    currentCharaData.put(LIST_UUID, uuid);
+                    gattCharacteristicGroupData.add(currentCharaData);
+                }
+                mGattCharacteristics.add(charas);
+                gattCharacteristicData.add(gattCharacteristicGroupData);
             }
-            mGattCharacteristics.add(charas);
-            gattCharacteristicData.add(gattCharacteristicGroupData);
         }
 
         SimpleExpandableListAdapter gattServiceAdapter = new SimpleExpandableListAdapter(

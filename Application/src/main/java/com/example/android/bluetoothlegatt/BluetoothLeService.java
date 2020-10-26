@@ -145,14 +145,14 @@ public class BluetoothLeService extends Service {
         } else if (UUID_GSR_MEASUREMENT.equals(characteristic.getUuid())) {
 //                int flag = characteristic.getProperties();
 //                int format = -1;
-////                if ((flag & 0x01) != 0) {
-////                    format = BluetoothGattCharacteristic.FORMAT_UINT16;
-//////                    Log.d(TAG, "Heart rate format UINT16.");
-////                } else {
-////                    format = BluetoothGattCharacteristic.FORMAT_UINT8;
-//////                    Log.d(TAG, "Heart rate format UINT8.");
-////                }
-//                format = BluetoothGattCharacteristic.FORMAT_UINT16;
+//                if ((flag & 0x01) != 0) {
+//                    format = BluetoothGattCharacteristic.FORMAT_UINT16;
+////                    Log.d(TAG, "Heart rate format UINT16.");
+//                } else {
+//                    format = BluetoothGattCharacteristic.FORMAT_UINT8;
+////                    Log.d(TAG, "Heart rate format UINT8.");
+//                }
+////                format = BluetoothGattCharacteristic.FORMAT_UINT16;
 //
 //                final int gsrRate = characteristic.getIntValue(format, 2);
 //                Log.d(TAG, String.format("Received GSR RATE: %d", gsrRate));

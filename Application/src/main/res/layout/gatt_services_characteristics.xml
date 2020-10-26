@@ -68,4 +68,19 @@
     <ExpandableListView android:id="@+id/gatt_services_list"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>
+
+    <com.github.mikephil.charting.charts.LineChart
+        android:layout_width="match_parent"
+        android:layout_height="300dp"
+        android:id="@+id/lineChart"
+        android:clickable="false"
+
+        ></com.github.mikephil.charting.charts.LineChart>
+
+    <ListView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/mySongListView"
+        android:background="@color/cardview_dark_background"
+        />
 </LinearLayout>
