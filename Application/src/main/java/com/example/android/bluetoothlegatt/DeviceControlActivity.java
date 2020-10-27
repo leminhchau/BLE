@@ -71,6 +71,7 @@ public class DeviceControlActivity extends Activity implements ActivityCompat.On
     public static final String EXTRAS_DEVICE_NAME = "DEVICE_NAME";
     public static final String EXTRAS_DEVICE_ADDRESS = "DEVICE_ADDRESS";
 
+    private int count = 0;
     private Thread thread;
     private ListView myListViewForSongs;
     private LineChart lineChart;
@@ -356,6 +357,10 @@ public class DeviceControlActivity extends Activity implements ActivityCompat.On
         if (data != null) {
             mDataField.setText(data);
         }
+        String[] newString = data.split(",");
+        String xAxisData = newString[1];
+        String yAxisData = newString[0];
+
         LineData currentData = lineChart.getData();
         if(currentData != null){
             ILineDataSet set = currentData.getDataSetByIndex(0);
@@ -365,7 +370,7 @@ public class DeviceControlActivity extends Activity implements ActivityCompat.On
                 currentData.addDataSet(set);
             }
 
-            currentData.addEntry(new Entry(set.getEntryCount(), Float.parseFloat(data)), 0);
+            currentData.addEntry(new Entry(Float.parseFloat(xAxisData), Float.parseFloat(yAxisData)), 0);
             currentData.notifyDataChanged();
             lineChart.notifyDataSetChanged();
             lineChart.setMaxVisibleValueCount(5);
