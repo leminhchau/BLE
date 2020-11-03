@@ -1,4 +1,4 @@
-#Mon Oct 26 23:51:22 CDT 2020
+#Fri Oct 30 18:07:45 CDT 2020
 base.0=C\:\\Users\\Chau\\Desktop\\BLE\\connectivity-samples-main\\BluetoothLeGatt\\Application\\build\\intermediates\\dex\\debug\\mergeDexDebug\\out
 path.0=classes.dex
 renamed.0=classes.dex

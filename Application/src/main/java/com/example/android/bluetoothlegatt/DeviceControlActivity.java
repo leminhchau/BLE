@@ -28,10 +28,12 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.media.MediaPlayer;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.IBinder;
+import android.provider.MediaStore;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 import android.view.Menu;
@@ -55,6 +57,7 @@ import com.github.mikephil.charting.data.LineDataSet;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 
 import java.io.File;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -66,7 +69,7 @@ import java.util.List;
  * Bluetooth LE API.
  */
 public class DeviceControlActivity extends Activity implements ActivityCompat.OnRequestPermissionsResultCallback{
-    private final static String TAG = DeviceControlActivity.class.getSimpleName();
+    private final static String TAG = "HELLOO THIS IS STEVEN";
 
     public static final String EXTRAS_DEVICE_NAME = "DEVICE_NAME";
     public static final String EXTRAS_DEVICE_ADDRESS = "DEVICE_ADDRESS";
@@ -89,6 +92,13 @@ public class DeviceControlActivity extends Activity implements ActivityCompat.On
     private final String LIST_NAME = "NAME";
     private final String LIST_UUID = "UUID";
 
+    public ArrayList<String> items = new ArrayList<>();
+    public ArrayList<Integer> resIdItems = new ArrayList<>();
+
+    private MediaPlayer mp;
+    private ArrayList<MediaPlayer> mpList = new ArrayList<>();
+    private Integer prevSong = -1;
+    private ArrayList<HashMap<String, String>> songList = new ArrayList<HashMap<String, String>>();
     // Code to manage Service lifecycle.
     private final ServiceConnection mServiceConnection = new ServiceConnection() {
 
@@ -177,69 +187,101 @@ public class DeviceControlActivity extends Activity implements ActivityCompat.On
         mDataField.setText(R.string.no_data);
     }
 
-    public ArrayList<File> findSong(File file){
+//    public ArrayList<File> findSong(File file){
+//
+//        ArrayList<File> arrayList = new ArrayList<>();
+//        File[] files = file.listFiles();
+//        for(File singleFile: files){
+//            if(singleFile.isDirectory() && !singleFile.isHidden()){
+//                arrayList.addAll(findSong(singleFile));
+//            }
+//            else{
+//                if (singleFile.getName().endsWith(".mp3") || singleFile.getName().endsWith(".wav")){
+//                    arrayList.add(singleFile);
+//                }
+//            }
+//        }
+//
+//        return arrayList;
+//
+//    }
 
-        ArrayList<File> arrayList = new ArrayList<>();
-        File[] files = file.listFiles();
-        for(File singleFile: files){
-            if(singleFile.isDirectory() && !singleFile.isHidden()){
-                arrayList.addAll(findSong(singleFile));
-            }
-            else{
-                if (singleFile.getName().endsWith(".mp3") || singleFile.getName().endsWith(".wav")){
-                    arrayList.add(singleFile);
-                }
-            }
-        }
 
-        return arrayList;
+//    public ArrayList<HashMap<String,String>> getPlayList(String rootPath) {
+//        ArrayList<HashMap<String,String>> fileList = new ArrayList<>();
+//
+//
+//        try {
+//            File rootFolder = new File(rootPath);
+//            File[] files = rootFolder.listFiles();
+//
+//            //here you will get NPE if directory doesn't contains  any file,handle it like this.
+//            for (File file : files) {
+//                if (file.isDirectory()) {
+//                    if (getPlayList(file.getAbsolutePath()) != null) {
+//                        fileList.addAll(getPlayList(file.getAbsolutePath()));
+//                    } else {
+//                        break;
+//                    }
+//                } else if (file.getName().endsWith(".mp3")) {
+//                    HashMap<String, String> song = new HashMap<>();
+//                    song.put("file_path", file.getAbsolutePath());
+//                    song.put("file_name", file.getName());
+//                    fileList.add(song);
+//                    Log.d(TAG, "THIS IS THE FILE LIST" + file.getName());
+//
+//                }
+//            }
+//            return fileList;
+//        } catch (Exception e) {
+//            return null;
+//        }
+//    }
+//    private static final int REQUEST_WRITE_PERMISSION = 111; //Number is not matter, just put what you want
+//
+//    @Override
+//    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+//        if (requestCode == REQUEST_WRITE_PERMISSION && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+//            //Do your stuff with the file
+//            final ListView myListViewForSongs  = (ListView)findViewById(R.id.mySongListView);
+//
+//            final ArrayList<File> mySongs = findSong(Environment.getExternalStorageDirectory());
+//
+//            String[] items;
+//            items = new String[mySongs.size()];
+//
+//            for(int i = 0; i<mySongs.size();i++)
+//            {
+//                items[i] = mySongs.get(i).getName().toString().replace(".mp3","").replace(".wav","");
+//
+//            }
+//
+//            ArrayAdapter<String> myAdapter = new ArrayAdapter<String>(getApplicationContext() ,android.R.layout.simple_list_item_1, items);
+//            myListViewForSongs.setAdapter(myAdapter);
+//        }
+//    }
 
-    }
-    private static final int REQUEST_WRITE_PERMISSION = 111; //Number is not matter, just put what you want
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        if (requestCode == REQUEST_WRITE_PERMISSION && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            //Do your stuff with the file
-            final ListView myListViewForSongs  = (ListView)findViewById(R.id.mySongListView);
-
-            final ArrayList<File> mySongs = findSong(Environment.getExternalStorageDirectory());
-
-            String[] items;
-            items = new String[mySongs.size()];
-
-            for(int i = 0; i<mySongs.size();i++)
-            {
-                items[i] = mySongs.get(i).getName().toString().replace(".mp3","").replace(".wav","");
-
-            }
-
-            ArrayAdapter<String> myAdapter = new ArrayAdapter<String>(getApplicationContext() ,android.R.layout.simple_list_item_1, items);
-            myListViewForSongs.setAdapter(myAdapter);
-        }
-    }
-
-    private void requestPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            requestPermissions(new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_WRITE_PERMISSION);
-        } else {
-            final ListView myListViewForSongs  = (ListView)findViewById(R.id.mySongListView);
-
-            final ArrayList<File> mySongs = findSong(Environment.getExternalStorageDirectory());
-
-            String[] items;
-            items = new String[mySongs.size()];
-
-            for(int i = 0; i<mySongs.size();i++)
-            {
-                items[i] = mySongs.get(i).getName().toString().replace(".mp3","").replace(".wav","");
-
-            }
-
-            ArrayAdapter<String> myAdapter = new ArrayAdapter<String>(getApplicationContext() ,android.R.layout.simple_list_item_1, items);
-            myListViewForSongs.setAdapter(myAdapter);
-        }
-    }
+//    private void requestPermission() {
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+//            requestPermissions(new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_WRITE_PERMISSION);
+//        } else {
+//            final ListView myListViewForSongs  = (ListView)findViewById(R.id.mySongListView);
+//
+//            final ArrayList<File> mySongs = findSong(Environment.getExternalStorageDirectory());
+//
+//            String[] items;
+//            items = new String[mySongs.size()];
+//
+//            for(int i = 0; i<mySongs.size();i++)
+//            {
+//                items[i] = mySongs.get(i).getName().toString().replace(".mp3","").replace(".wav","");
+//
+//            }
+//
+//            ArrayAdapter<String> myAdapter = new ArrayAdapter<String>(getApplicationContext() ,android.R.layout.simple_list_item_1, items);
+//            myListViewForSongs.setAdapter(myAdapter);
+//        }
+//    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -260,7 +302,7 @@ public class DeviceControlActivity extends Activity implements ActivityCompat.On
         lineChart = (LineChart) findViewById(R.id.lineChart);
         myListViewForSongs = (ListView) findViewById(R.id.mySongListView);
 
-        requestPermission();
+
 
 
 
@@ -279,8 +321,56 @@ public class DeviceControlActivity extends Activity implements ActivityCompat.On
         getActionBar().setDisplayHomeAsUpEnabled(true);
         Intent gattServiceIntent = new Intent(this, BluetoothLeService.class);
         bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
-    }
 
+//        ArrayList<HashMap<String, String>> songList = getPlayList(Environment.getExternalStorageDirectory().getAbsolutePath());
+
+
+//        int resID=getResources().getIdentifier(R.raw.dre, "raw", getPackageName());
+        listRaw();
+        ArrayAdapter<String> myAdapter = new ArrayAdapter<String>(getApplicationContext(),android.R.layout.simple_list_item_1, items);
+        myListViewForSongs.setAdapter(myAdapter);
+        for(int i=0; i<resIdItems.size(); i++)
+        {
+            mp = MediaPlayer.create(this, resIdItems.get(i));
+            mpList.add(mp);
+        }
+
+        myListViewForSongs.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+
+
+                if (prevSong==i){
+                    mpList.get(i).pause();
+                }
+                else if (prevSong == -1){
+//                    mpList.get(prevSong).pause();
+                    mpList.get(i).start();
+                }
+                else
+                {
+                    mpList.get(prevSong).pause();
+                    mpList.get(i).start();
+                }
+
+
+                prevSong = i;
+
+
+            }
+        });
+    }
+    public void listRaw(){
+        Field[] fields=R.raw.class.getFields();
+        for(int count=0; count < fields.length; count++){
+            Log.i("Raw Asset: ", fields[count].getName());
+            items.add(fields[count].getName());
+            int resID = getResources().getIdentifier(fields[count].getName(), "raw", getPackageName());
+            resIdItems.add(resID);
+
+
+        }
+    }
 
     @Override
     protected void onResume() {
@@ -308,6 +398,7 @@ public class DeviceControlActivity extends Activity implements ActivityCompat.On
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.gatt_services, menu);
+
         if (mConnected) {
             menu.findItem(R.id.menu_connect).setVisible(false);
             menu.findItem(R.id.menu_disconnect).setVisible(true);
@@ -376,6 +467,8 @@ public class DeviceControlActivity extends Activity implements ActivityCompat.On
             lineChart.setMaxVisibleValueCount(5);
             lineChart.moveViewToX(currentData.getEntryCount());
         }
+
+
 //        ArrayList<String> xAXES = new ArrayList<>();
 //        ArrayList<Entry> yAXESsin = new ArrayList<>();
 //        ArrayList<Entry> yAXEScos = new ArrayList<>();
