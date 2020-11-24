@@ -41,6 +41,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.ExpandableListView;
 import android.widget.ListView;
 import android.widget.SimpleExpandableListAdapter;
@@ -95,9 +96,14 @@ public class DeviceControlActivity extends Activity implements ActivityCompat.On
     public ArrayList<String> items = new ArrayList<>();
     public ArrayList<Integer> resIdItems = new ArrayList<>();
 
+    private boolean isSongPlaying = false;
+    private Button stopButton;
+    private Button pauseButton;
+    private Button playButton;
+    private Button playFromBeginningButton;
     private MediaPlayer mp;
     private ArrayList<MediaPlayer> mpList = new ArrayList<>();
-    private Integer prevSong = -1;
+    private Integer prevSong = 0;
     private ArrayList<HashMap<String, String>> songList = new ArrayList<HashMap<String, String>>();
     // Code to manage Service lifecycle.
     private final ServiceConnection mServiceConnection = new ServiceConnection() {
@@ -301,9 +307,14 @@ public class DeviceControlActivity extends Activity implements ActivityCompat.On
         mDataField = (TextView) findViewById(R.id.data_value);
         lineChart = (LineChart) findViewById(R.id.lineChart);
         myListViewForSongs = (ListView) findViewById(R.id.mySongListView);
-
-
-
+        stopButton = (Button) findViewById(R.id.stopButton);
+        pauseButton = (Button) findViewById(R.id.pauseButton);
+        playButton = (Button) findViewById(R.id.playButton);
+        playFromBeginningButton = (Button) findViewById(R.id.playFromBeginningButton);
+        stopButton.setVisibility(View.GONE);
+        pauseButton.setVisibility(View.GONE);
+        playButton.setVisibility(View.GONE);
+        playFromBeginningButton.setVisibility(View.GONE);
 
 
 
@@ -340,8 +351,9 @@ public class DeviceControlActivity extends Activity implements ActivityCompat.On
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
 
 
+
                 if (prevSong==i){
-                    mpList.get(i).pause();
+                    mpList.get(i).start();
                 }
                 else if (prevSong == -1){
 //                    mpList.get(prevSong).pause();
@@ -357,8 +369,75 @@ public class DeviceControlActivity extends Activity implements ActivityCompat.On
                 prevSong = i;
 
 
+
+                if (mpList.get(prevSong).isPlaying()){
+                    stopButton.setVisibility(View.VISIBLE);
+                    pauseButton.setVisibility(View.VISIBLE);
+                    playButton.setVisibility(View.GONE);
+
+                    stopButton.setOnClickListener(new View.OnClickListener(){
+
+                        @Override
+                        public void onClick(View v) {
+
+                            if(mpList.get(prevSong).isPlaying()){
+                                mpList.get(prevSong).pause();
+                                mpList.get(prevSong).seekTo(0);
+                                playFromBeginningButton.setVisibility(View.VISIBLE);
+                                stopButton.setVisibility(View.GONE);
+
+                            }
+
+                        }
+                    });
+
+                    playFromBeginningButton.setOnClickListener(new View.OnClickListener(){
+
+                        @Override
+                        public void onClick(View v) {
+                            mpList.get(prevSong).seekTo(0);
+                            mpList.get(prevSong).start();
+                            playFromBeginningButton.setVisibility(View.GONE);
+                            stopButton.setVisibility(View.VISIBLE);
+                        }
+                    });
+
+                    pauseButton.setOnClickListener(new View.OnClickListener(){
+
+                        @Override
+                        public void onClick(View v) {
+                            if (mpList.get(prevSong).isPlaying()) {
+                                mpList.get(prevSong).pause();
+                                playButton.setVisibility(View.VISIBLE);
+                                pauseButton.setVisibility(View.GONE);
+                            }
+                        }
+                    });
+
+                    playButton.setOnClickListener(new View.OnClickListener(){
+
+                        @Override
+                        public void onClick(View v) {
+                            mpList.get(prevSong).start();
+                            playButton.setVisibility(View.GONE);
+                            pauseButton.setVisibility(View.VISIBLE);
+                        }
+                    });
+                }
             }
         });
+
+
+
+
+
+
+
+
+
+
+
+
     }
     public void listRaw(){
         Field[] fields=R.raw.class.getFields();
@@ -444,6 +523,7 @@ public class DeviceControlActivity extends Activity implements ActivityCompat.On
         return set;
     }
 
+
     private void displayData(String data) {
         if (data != null) {
             mDataField.setText(data);
@@ -451,6 +531,52 @@ public class DeviceControlActivity extends Activity implements ActivityCompat.On
         String[] newString = data.split(",");
         String xAxisData = newString[1];
         String yAxisData = newString[0];
+
+
+
+        if (mpList.get(prevSong).isPlaying() )
+        {
+            isSongPlaying = true;
+            if (Float.parseFloat(yAxisData) == 10 && prevSong!= 0){
+                mpList.get(prevSong).pause();
+                mpList.get(prevSong).seekTo(0);
+                mpList.get(0).start();
+                prevSong = 0;
+            }
+
+            else if (Float.parseFloat(yAxisData) == 20 && prevSong != 1){
+                mpList.get(prevSong).pause();
+                mpList.get(prevSong).seekTo(0);
+                mpList.get(1).start();
+                prevSong = 1;
+            }
+            else if (Float.parseFloat(yAxisData) == 30 && prevSong != 2){
+                mpList.get(prevSong).pause();
+                mpList.get(prevSong).seekTo(0);
+                mpList.get(2).start();
+                prevSong = 2;
+            }
+        }
+        else {
+            if (Float.parseFloat(yAxisData) == 10){
+
+                mpList.get(0).start();
+                prevSong = 0;
+            }
+
+            else if (Float.parseFloat(yAxisData) == 20 ){
+
+                mpList.get(1).start();
+                prevSong = 1;
+            }
+            else if (Float.parseFloat(yAxisData) == 30 ){
+
+                mpList.get(2).start();
+                prevSong = 2;
+            }
+        }
+
+
 
         LineData currentData = lineChart.getData();
         if(currentData != null){
@@ -469,46 +595,9 @@ public class DeviceControlActivity extends Activity implements ActivityCompat.On
         }
 
 
-//        ArrayList<String> xAXES = new ArrayList<>();
-//        ArrayList<Entry> yAXESsin = new ArrayList<>();
-//        ArrayList<Entry> yAXEScos = new ArrayList<>();
-//        float x = 0;
-//        int numDataPoints = 1000;
-//        for (int i = 0; i < numDataPoints; i++) {
-//            float sinFunction = Float.parseFloat(String.valueOf(Math.sin(x)));
-//            float cosFunction = Float.parseFloat(String.valueOf(Math.cos(x)));
-//
-//            Entry sinE = new Entry(x, sinFunction);
-//            yAXESsin.add(sinE);
-//            Entry cosE = new Entry(x, cosFunction);
-//            yAXEScos.add(cosE);
-//            x = x + 0.1f;
-//        }
-//        String[] xaxes = new String[xAXES.size()];
-//
-//
-//        ArrayList<ILineDataSet> lineDataSets = new ArrayList<ILineDataSet>();
-//        LineDataSet lineDataSet1 = new LineDataSet(yAXEScos, "phasic skin conductance");
-//        lineDataSet1.setAxisDependency(YAxis.AxisDependency.LEFT);
-//        lineDataSet1.setDrawCircles(false);
-//        lineDataSet1.setColor(Color.BLUE);
-//
-//        LineDataSet lineDataSet2 = new LineDataSet(yAXESsin, "tonic skin conductance");
-//        lineDataSet2.setAxisDependency(YAxis.AxisDependency.LEFT);
-//        lineDataSet2.setDrawCircles(false);
-//        lineDataSet2.setColor(Color.RED);
-//
-//        lineDataSets.add(lineDataSet1);
-//        lineDataSets.add(lineDataSet2);
-//
-//        LineData data1 = new LineData(lineDataSets);
-//        lineChart.setData(data1);
-//        lineChart.invalidate();
-//        lineChart.setData(new LineData(lineDataSets));
-//        lineChart.setVisibleXRangeMaximum(65f);
-//        Legend legend = lineChart.getLegend();
-//        legend.setTextSize(20);
-//        legend.setWordWrapEnabled(true);
+
+
+
     }
 
     // Demonstrates how to iterate through the supported GATT Services/Characteristics.
@@ -518,7 +607,7 @@ public class DeviceControlActivity extends Activity implements ActivityCompat.On
         if (gattServices == null) return;
         String uuid = null;
         String unknownServiceString = "GSR GRAPH";
-        String unknownCharaString = "CLICK HERE";
+        String unknownCharaString = "START GENERATING THE GRAPH";
         ArrayList<HashMap<String, String>> gattServiceData = new ArrayList<HashMap<String, String>>();
         ArrayList<ArrayList<HashMap<String, String>>> gattCharacteristicData
                 = new ArrayList<ArrayList<HashMap<String, String>>>();

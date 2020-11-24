@@ -81,6 +81,36 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:id="@+id/mySongListView"
-        android:background="@color/cardview_dark_background"
+        android:background="@color/cardview_light_background"
         />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="stop"
+            android:id="@+id/stopButton"
+            />
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="play from beginning"
+            android:id="@+id/playFromBeginningButton"
+            />
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="pause"
+            android:id="@+id/pauseButton"
+            />
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="play"
+            android:id="@+id/playButton"
+            />
+    </LinearLayout>
+
 </LinearLayout>

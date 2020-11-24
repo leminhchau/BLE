@@ -712,6 +712,9 @@ id notification_background
 id notification_main_column
 id notification_main_column_container
 id parentPanel
+id pauseButton
+id playButton
+id playFromBeginningButton
 id progress_circular
 id progress_horizontal
 id radio
@@ -744,6 +747,7 @@ id src_in
 id src_over
 id start
 id status_bar_latest_event_content
+id stopButton
 id submenuarrow
 id submit_area
 id tabMode
